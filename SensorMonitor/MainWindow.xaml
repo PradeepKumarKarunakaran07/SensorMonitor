@@ -1,0 +1,228 @@
+<Window x:Class="SensorMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SensorMonitor.Controls"
+        Title="Sensor Monitor" Width="1280" Height="800" MinWidth="900" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBg}"
+        Foreground="{StaticResource TextPrimary}"
+        FontFamily="Segoe UI" FontSize="13">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ───────────── Side panel ───────────── -->
+        <Border Grid.Column="0" Background="{StaticResource PanelBg}"
+                BorderBrush="{StaticResource Divider}" BorderThickness="0,0,1,0">
+            <DockPanel>
+
+                <!-- Status footer -->
+                <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
+                        Padding="18,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource TextMuted}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                <Setter Property="Fill" Value="{StaticResource Live}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Stopped"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                <Setter Property="Text" Value="Streaming"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock Foreground="{StaticResource TextMuted}" FontSize="12" Margin="16,4,0,0"
+                                   Text="{Binding SamplesPerSecond, StringFormat='{}{0:N0} samples/s (all sensors)'}"/>
+                        <TextBlock Foreground="{StaticResource TextMuted}" FontSize="12" Margin="16,2,0,0"
+                                   Text="{Binding TotalSamples, StringFormat='{}{0:N0} samples total'}"/>
+                        <TextBlock Foreground="{StaticResource TextMuted}" FontSize="12" Margin="16,6,0,0"
+                                   TextWrapping="Wrap" Text="{Binding StatusText}"/>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="18">
+                        <TextBlock Text="Sensor Monitor" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="Each sensor is a separate process, streaming over TCP or UDP" Foreground="{StaticResource TextMuted}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,18"/>
+
+                        <Button Style="{StaticResource StreamButton}" Height="36"
+                                Command="{Binding ToggleStreamingCommand}"/>
+
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <Button Style="{StaticResource FlatButton}" Content="+ Add sensor" Margin="0,0,4,0"
+                                    Command="{Binding AddSensorCommand}"
+                                    ToolTip="Launch another sensor process (max 8)"/>
+                            <Button Style="{StaticResource FlatButton}" Content="Clear data" Margin="4,0,0,0"
+                                    Command="{Binding ClearCommand}"/>
+                        </UniformGrid>
+
+                        <CheckBox Content="Show console window for new sensors" Margin="0,10,0,0"
+                                  IsChecked="{Binding ShowSensorConsoles}"
+                                  ToolTip="Each sensor process gets its own console window, so you can watch its log"/>
+
+                        <!-- Normalization -->
+                        <TextBlock Text="NORMALIZATION" Style="{StaticResource SectionHeader}"/>
+
+                        <TextBlock Text="Value scaling" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding NormalizationOptions}"
+                                  DisplayMemberPath="Label" SelectedValuePath="Value"
+                                  SelectedValue="{Binding NormalizationMode}"/>
+                        <TextBlock Text="{Binding NormalizationHint}" Style="{StaticResource Hint}"/>
+
+                        <TextBlock Text="Time alignment" Style="{StaticResource FieldLabel}" Margin="0,14,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="86"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding ResampleOptions}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding ResampleMethod}"/>
+                            <ComboBox Grid.Column="1" Margin="8,0,0,0"
+                                      ItemsSource="{Binding CommonRates}" ItemStringFormat="{}{0} Hz"
+                                      SelectedItem="{Binding ResampleRateHz}"
+                                      IsEnabled="{Binding IsResampling}"
+                                      ToolTip="Common rate every sensor is resampled to"/>
+                        </Grid>
+                        <TextBlock Text="{Binding ResampleHint}" Style="{StaticResource Hint}"/>
+
+                        <!-- Display -->
+                        <TextBlock Text="DISPLAY" Style="{StaticResource SectionHeader}"/>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Width="44" TextAlignment="Right"
+                                       Text="{Binding TimeWindowSeconds, StringFormat='{}{0:0} s'}"/>
+                            <TextBlock DockPanel.Dock="Left" Text="Window" Width="60" VerticalAlignment="Center"/>
+                            <Slider Minimum="5" Maximum="120" TickFrequency="5" IsSnapToTickEnabled="True"
+                                    Value="{Binding TimeWindowSeconds}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <CheckBox Content="Split view (one lane per sensor)" Margin="0,12,0,0"
+                                  IsChecked="{Binding IsSplitView}"/>
+                        <CheckBox Content="Show sample points" Margin="0,8,0,0"
+                                  IsChecked="{Binding ShowSamplePoints}"
+                                  ToolTip="Mark each plotted sample, so each sensor's frame rate is visible"/>
+
+                        <!-- Sensors (also the legend) -->
+                        <TextBlock Text="SENSORS" Style="{StaticResource SectionHeader}"/>
+                        <ItemsControl ItemsSource="{Binding Sensors}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
+                                            ToolTip="{Binding ProcessText}">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource CardBg}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsConnected}" Value="False">
+                                                        <Setter Property="Opacity" Value="0.55"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <CheckBox Grid.RowSpan="4" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                      IsChecked="{Binding IsVisible}" ToolTip="Show on chart"/>
+                                            <Rectangle Grid.Row="0" Grid.Column="1" Width="10" Height="10"
+                                                       RadiusX="2" RadiusY="2" Margin="0,0,8,0"
+                                                       VerticalAlignment="Center" Fill="{Binding Brush}"/>
+
+                                            <DockPanel Grid.Row="0" Grid.Column="2">
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding MeasuredRateText}"
+                                                           Foreground="{StaticResource TextMuted}" FontSize="11"
+                                                           Margin="6,1,0,0" VerticalAlignment="Center"
+                                                           ToolTip="Frames actually received per second"/>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </DockPanel>
+
+                                            <Button Grid.Row="0" Grid.Column="3" Style="{StaticResource IconButton}"
+                                                    Content="✕" ToolTip="Remove sensor"
+                                                    Command="{Binding DataContext.RemoveSensorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                                       Text="{Binding LatestText}" FontSize="18" FontWeight="SemiBold"
+                                                       Foreground="{Binding Brush}" Margin="0,4,0,0"
+                                                       VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                                                      HorizontalAlignment="Right" Width="86" Height="26" Margin="0,4,0,0"
+                                                      ItemsSource="{Binding AvailableRates}" ItemStringFormat="{}{0} Hz"
+                                                      SelectedItem="{Binding SampleRateHz}"
+                                                      IsEnabled="{Binding IsConnected}"
+                                                      ToolTip="Frame rate (sent to the sensor process as a SetRate message)"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+                                                       Text="{Binding StatsText}" FontSize="11" Margin="0,3,0,0"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3"
+                                                       Text="{Binding LinkStatus}" FontSize="11" Margin="0,2,0,0"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- ───────────── Chart ───────────── -->
+        <Grid Grid.Column="1" Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <DockPanel Margin="0,0,0,12">
+                <TextBlock DockPanel.Dock="Right" Foreground="{StaticResource TextMuted}" VerticalAlignment="Bottom"
+                           Text="{Binding TimeWindowSeconds, StringFormat='Last {0:0} seconds'}"/>
+                <TextBlock Text="Live readings" FontSize="16" FontWeight="SemiBold"/>
+            </DockPanel>
+
+            <Border Grid.Row="1" CornerRadius="8" BorderBrush="{StaticResource Divider}" BorderThickness="1"
+                    Background="#12151A" Padding="4">
+                <controls:RealtimeChart Series="{Binding Sensors}"
+                                        TimeWindowSeconds="{Binding TimeWindowSeconds}"
+                                        IsLive="{Binding IsStreaming}"
+                                        IsSplitView="{Binding IsSplitView}"
+                                        NormalizationMode="{Binding NormalizationMode}"
+                                        ResampleMethod="{Binding ResampleMethod}"
+                                        ResampleRateHz="{Binding ResampleRateHz}"
+                                        ShowSamplePoints="{Binding ShowSamplePoints}"/>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

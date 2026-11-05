@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- One running instance of this program = one sensor. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(SensorTfm)</TargetFramework>
+    <RootNamespace>SensorSimulator</RootNamespace>
+    <AssemblyName>SensorSimulator</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SensorMonitor.Shared\SensorMonitor.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

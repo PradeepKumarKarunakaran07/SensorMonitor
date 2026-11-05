@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Wire protocol and sensor definitions shared by the monitor and the sensor processes. -->
+  <PropertyGroup>
+    <TargetFramework>$(SensorTfm)</TargetFramework>
+    <RootNamespace>SensorMonitor.Shared</RootNamespace>
+  </PropertyGroup>
+
+</Project>
